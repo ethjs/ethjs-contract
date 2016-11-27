@@ -19,7 +19,7 @@
     "url": "git+ssh://git@github.com/silentcicero/ethjs-contract.git"
   },
   "dependencies": {
-    "ethjs-util": "0.0.2",
+    "ethjs-util": "0.0.3",
     "ethjs-abi": "0.0.1",
     "ethjs-query": "0.0.2",
     "ethjs-filter": "0.0.1",
@@ -114,10 +114,5 @@
       ]
     }
   },
-  "pre-commit": "lint:staged",
-  "dependencies": {
-    "ethjs-abi": "0.0.1",
-    "ethjs-filter": "0.0.1",
-    "ethjs-sha3": "0.0.1"
-  }
+  "pre-commit": "lint:staged"
 }

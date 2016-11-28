@@ -2,19 +2,19 @@
 
 <div>
   <!-- Dependency Status -->
-  <a href="https://david-dm.org/SilentCicero/ethjs-contract">
-    <img src="https://david-dm.org/SilentCicero/ethjs-contract.svg"
+  <a href="https://david-dm.org/ethjs/ethjs-contract">
+    <img src="https://david-dm.org/ethjs/ethjs-contract.svg"
     alt="Dependency Status" />
   </a>
 
   <!-- devDependency Status -->
-  <a href="https://david-dm.org/SilentCicero/ethjs-contract#info=devDependencies">
-    <img src="https://david-dm.org/SilentCicero/ethjs-contract/dev-status.svg" alt="devDependency Status" />
+  <a href="https://david-dm.org/ethjs/ethjs-contract#info=devDependencies">
+    <img src="https://david-dm.org/ethjs/ethjs-contract/dev-status.svg" alt="devDependency Status" />
   </a>
 
   <!-- Build Status -->
-  <a href="https://travis-ci.org/SilentCicero/ethjs-contract">
-    <img src="https://travis-ci.org/SilentCicero/ethjs-contract.svg"
+  <a href="https://travis-ci.org/ethjs/ethjs-contract">
+    <img src="https://travis-ci.org/ethjs/ethjs-contract.svg"
     alt="Build Status" />
   </a>
 
@@ -22,6 +22,11 @@
   <a href="https://www.npmjs.org/package/ethjs-contract">
     <img src="http://img.shields.io/npm/v/ethjs-contract.svg"
     alt="NPM version" />
+  </a>
+
+  <!-- Test Coverage -->
+  <a href="https://coveralls.io/r/ethjs/ethjs-contract">
+    <img src="https://coveralls.io/repos/github/ethjs/ethjs-contract/badge.svg" alt="Test Coverage" />
   </a>
 
   <!-- Javascript Style -->
@@ -106,13 +111,13 @@ There is always a lot of work to do, and will have many rules to maintain. So pl
 
 Please consult our [Code of Conduct](CODE_OF_CONDUCT.md) docs before helping out.
 
-We communicate via [issues](https://github.com/SilentCicero/ethjs-contract/issues) and [pull requests](https://github.com/SilentCicero/ethjs-contract/pulls).
+We communicate via [issues](https://github.com/ethjs/ethjs-contract/issues) and [pull requests](https://github.com/ethjs/ethjs-contract/pulls).
 
 ## Important documents
 
 - [Changelog](CHANGELOG.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
-- [License](https://raw.githubusercontent.com/SilentCicero/ethjs-contract/master/LICENSE)
+- [License](https://raw.githubusercontent.com/ethjs/ethjs-contract/master/LICENSE)
 
 ## Licence
 

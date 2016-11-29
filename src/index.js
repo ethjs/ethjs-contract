@@ -72,7 +72,7 @@ function contractFactory(query) {
                 queryMethod = 'sendTransaction';
               }
 
-              query[queryMethod](methodTxObject, newMethodCallback);
+              return query[queryMethod](methodTxObject, newMethodCallback);
             } else if (methodObject.type === 'event') {
               const filterInputTypes = getKeys(methodObject.inputs, 'type', false);
               const filterTopic = sha3(`${methodObject.name}(${filterInputTypes.join(',')})`);
@@ -93,8 +93,9 @@ function contractFactory(query) {
 
     output.new = function newContract() {
       var providedTxObject = {}; // eslint-disable-line
+      var newMethodCallback = () => {}; // eslint-disable-line
       const newMethodArgs = [].slice.call(arguments); // eslint-disable-line
-      const newMethodCallback = newMethodArgs.pop(); // eslint-disable-line
+      if (typeof newMethodArgs[newMethodArgs.length - 1] === 'function') newMethodCallback = newMethodArgs.pop();
       if (hasTransactionObject(newMethodArgs)) providedTxObject = newMethodArgs.pop();
       const constructMethod = getConstructorFromABI(contractABI);
       const assembleTxObject = Object.assign({}, contractDefaultTxObject, providedTxObject);
@@ -110,7 +111,7 @@ function contractFactory(query) {
         assembleTxObject.data = `${assembleTxObject.data}${constructBytecode}`;
       }
 
-      query.sendTransaction(assembleTxObject, newMethodCallback);
+      return query.sendTransaction(assembleTxObject, newMethodCallback);
     };
 
     return output;

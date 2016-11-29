@@ -22,7 +22,7 @@
   "dependencies": {
     "ethjs-util": "0.0.3",
     "ethjs-abi": "0.0.1",
-    "ethjs-query": "0.0.2",
+    "ethjs-query": "0.0.4",
     "ethjs-filter": "0.0.1",
     "ethjs-sha3": "0.0.1"
   },

@@ -44,15 +44,22 @@ function contractFactory(query) {
           self[methodObject.name] = function contractMethod() { // eslint-disable-line
             var queryMethod = 'call'; // eslint-disable-line
             var providedTxObject = {}; // eslint-disable-line
+            var methodCallback = () => {}; // eslint-disable-line
             const methodArgs = [].slice.call(arguments); // eslint-disable-line
-            const methodCallback = methodArgs.pop();
+            if (typeof methodArgs[methodArgs.length - 1] === 'function') {
+              methodCallback = methodArgs.pop();
+            }
 
             function newMethodCallback(callbackError, callbackResult) {
               if (queryMethod === 'call' && !callbackError) {
                 if (methodObject.type === 'event') {
-                  methodCallback(callbackError, abi.decodeEvent(methodObject, callbackResult));
+                  const decodedEventResult = abi.decodeEvent(methodObject, callbackResult);
+
+                  methodCallback(callbackError, decodedEventResult);
                 } else {
-                  methodCallback(callbackError, abi.decodeMethod(methodObject, callbackResult));
+                  const decodedMethodResult = abi.decodeMethod(methodObject, callbackResult);
+
+                  methodCallback(callbackError, decodedMethodResult);
                 }
               } else {
                 methodCallback(callbackError, callbackResult);
@@ -72,7 +79,7 @@ function contractFactory(query) {
                 queryMethod = 'sendTransaction';
               }
 
-              return query[queryMethod](methodTxObject, newMethodCallback);
+              query[queryMethod](methodTxObject, newMethodCallback);
             } else if (methodObject.type === 'event') {
               const filterInputTypes = getKeys(methodObject.inputs, 'type', false);
               const filterTopic = sha3(`${methodObject.name}(${filterInputTypes.join(',')})`);

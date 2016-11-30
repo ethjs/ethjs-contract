@@ -30,7 +30,7 @@ function contractFactory(query) {
     const output = {};
     output.at = function atContract(address) {
       function Contract() {
-        if (!(this instanceof Contract)) { throw new Error('the ContractFactory instance requires the "new" flag in order to function normally.'); }
+        if (!(this instanceof Contract)) { throw new Error('the Contract instance requires the "new" flag in order to function normally.'); }
 
         const self = this;
         self.abi = contractABI || [];
@@ -52,15 +52,9 @@ function contractFactory(query) {
 
             function newMethodCallback(callbackError, callbackResult) {
               if (queryMethod === 'call' && !callbackError) {
-                if (methodObject.type === 'event') {
-                  const decodedEventResult = abi.decodeEvent(methodObject, callbackResult);
+                const decodedMethodResult = abi.decodeMethod(methodObject, callbackResult);
 
-                  methodCallback(callbackError, decodedEventResult);
-                } else {
-                  const decodedMethodResult = abi.decodeMethod(methodObject, callbackResult);
-
-                  methodCallback(callbackError, decodedMethodResult);
-                }
+                methodCallback(callbackError, decodedMethodResult);
               } else {
                 methodCallback(callbackError, callbackResult);
               }
@@ -89,7 +83,36 @@ function contractFactory(query) {
                 topics: [filterTopic],
               });
 
-              return new self.filters.Filter(filterObject, methodCallback);
+              const EventFilter = function EventFilter(filterInput, callbackInput) {
+                const watchSelf = this;
+                watchSelf.filter = new self.filters.Filter(filterInput, callbackInput);
+              };
+
+              EventFilter.prototype.stopWatching = function stopWatching(stopCallback) {
+                const watchSelf = this;
+                return watchSelf.filter.stopWatching(stopCallback);
+              };
+
+              EventFilter.prototype.watch = function watch(watchCallback) {
+                const watchSelf = this;
+                watchSelf.filter.watch((watchError, watchResult) => {
+                  if (!watchError && Array.isArray(watchResult) && watchResult.length > 0) {
+                    var newWatchResult = []; // eslint-disable-line
+
+                    watchResult.forEach((logObject, logIndex) => {
+                      const newLogObject = Object.assign({}, logObject);
+                      newLogObject.data = abi.decodeEvent(methodObject, logObject.data);
+                      newWatchResult[logIndex] = newLogObject;
+                    });
+
+                    watchCallback(watchError, newWatchResult);
+                  } else {
+                    watchCallback(watchError, watchResult);
+                  }
+                });
+              };
+
+              return new EventFilter(filterObject, methodCallback);
             }
           };
         });

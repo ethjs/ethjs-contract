@@ -38,6 +38,7 @@
     "eslint-plugin-react": "5.1.1",
     "ethereumjs-testrpc": "^3.0.2",
     "ethjs-abi": "0.0.1",
+    "ethjs-provider-http": "0.0.1",
     "ethjs-query": "0.0.4",
     "ethjs-sha3": "0.0.1",
     "ethjs-util": "0.0.2",

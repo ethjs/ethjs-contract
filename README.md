@@ -65,14 +65,16 @@ simpleStore.set(45000, (error, result) => {
   // result null '0x2dfj24...'
 });
 
-simpleStore.get((error, result) => {
-  // result null <BigNumber ...>
+simpleStore.get().catch((error) => {
+  // error null
+}).then(result) => {
+  // result <BigNumber ...>
 });
 
 const filter = simpleStore.SetComplete((error, result) => {
   // result null <BigNumber ...> filterId
 });
-filter.watch((error, result) => {
+filter.watch().then((result) => {
   // result null FilterResult {...}
 });
 filter.stopWatching((error, result) => {

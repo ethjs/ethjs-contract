@@ -48,30 +48,44 @@ function contractFactory(query) {
               methodCallback = methodArgs.pop();
             }
 
-            function newMethodCallback(callbackError, callbackResult) {
-              if (queryMethod === 'call' && !callbackError) {
-                const decodedMethodResult = abi.decodeMethod(methodObject, callbackResult);
-
-                methodCallback(callbackError, decodedMethodResult);
-              } else {
-                methodCallback(callbackError, callbackResult);
-              }
-            }
-
             if (methodObject.type === 'function') {
-              if (hasTransactionObject(methodArgs)) providedTxObject = methodArgs.pop();
-              const methodTxObject = Object.assign(
-                self.defaultTxObject,
-                providedTxObject, {
-                  to: self.address,
-                });
-              methodTxObject.data = abi.encodeMethod(methodObject, methodArgs);
+              return new Promise((resolve, reject) => {
+                function newMethodCallback(callbackError, callbackResult) {
+                  if (queryMethod === 'call' && !callbackError) {
+                    try {
+                      const decodedMethodResult = abi.decodeMethod(methodObject, callbackResult);
 
-              if (methodObject.constant === false) {
-                queryMethod = 'sendTransaction';
-              }
+                      resolve(decodedMethodResult);
+                      methodCallback(null, decodedMethodResult);
+                    } catch (decodeFormattingError) {
+                      const decodingError = new Error(`[ethjs-contract] while formatting incoming raw call data ${JSON.stringify(callbackResult)} ${decodeFormattingError}`);
 
-              query[queryMethod](methodTxObject, newMethodCallback);
+                      reject(decodingError);
+                      methodCallback(decodingError, null);
+                    }
+                  } else if (queryMethod === 'sendTransaction' && !callbackError) {
+                    resolve(callbackResult);
+                    methodCallback(null, callbackResult);
+                  } else {
+                    reject(callbackError);
+                    methodCallback(callbackError, null);
+                  }
+                }
+
+                if (hasTransactionObject(methodArgs)) providedTxObject = methodArgs.pop();
+                const methodTxObject = Object.assign(
+                  self.defaultTxObject,
+                  providedTxObject, {
+                    to: self.address,
+                  });
+                methodTxObject.data = abi.encodeMethod(methodObject, methodArgs);
+
+                if (methodObject.constant === false) {
+                  queryMethod = 'sendTransaction';
+                }
+
+                query[queryMethod](methodTxObject, newMethodCallback);
+              });
             } else if (methodObject.type === 'event') {
               const filterInputTypes = getKeys(methodObject.inputs, 'type', false);
               const filterTopic = sha3(`${methodObject.name}(${filterInputTypes.join(',')})`);
@@ -91,22 +105,36 @@ function contractFactory(query) {
                 return watchSelf.filter.stopWatching(stopCallback);
               };
 
-              EventFilter.prototype.watch = function watch(watchCallback) {
+              EventFilter.prototype.watch = function watch(watchCallbackInput) {
+                var watchCallback = () => {}; // eslint-disable-line
                 const watchSelf = this;
-                watchSelf.filter.watch((watchError, watchResult) => {
-                  if (!watchError && Array.isArray(watchResult) && watchResult.length > 0) {
-                    var newWatchResult = []; // eslint-disable-line
+                if (typeof watchCallbackInput === 'function') watchCallback = watchCallbackInput;
 
-                    watchResult.forEach((logObject, logIndex) => {
-                      const newLogObject = Object.assign({}, logObject);
-                      newLogObject.data = abi.decodeEvent(methodObject, logObject.data);
-                      newWatchResult[logIndex] = newLogObject;
-                    });
+                return new Promise((watchResolve, watchReject) => {
+                  watchSelf.filter.watch((watchError, watchResult) => {
+                    if (!watchError && Array.isArray(watchResult) && watchResult.length > 0) {
+                      var newWatchResult = []; // eslint-disable-line
 
-                    watchCallback(watchError, newWatchResult);
-                  } else {
-                    watchCallback(watchError, watchResult);
-                  }
+                      try {
+                        watchResult.forEach((logObject, logIndex) => {
+                          const newLogObject = Object.assign({}, logObject);
+                          newLogObject.data = abi.decodeEvent(methodObject, logObject.data);
+                          newWatchResult[logIndex] = newLogObject;
+                        });
+
+                        watchResolve(null, newWatchResult);
+                        watchCallback(null, newWatchResult);
+                      } catch (decodeEventErrorMessage) {
+                        const decodeEventError = new Error(`[ethjs-contract] while decoding filter change event data from RPC '${JSON.stringify(watchResult)}': ${decodeEventErrorMessage}`);
+
+                        watchReject(decodeEventError);
+                        watchCallback(decodeEventError, null);
+                      }
+                    } else if (watchError) {
+                      watchReject(watchError);
+                      watchCallback(watchError, watchResult);
+                    }
+                  });
                 });
               };
 

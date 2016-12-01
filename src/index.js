@@ -30,8 +30,6 @@ function contractFactory(query) {
     const output = {};
     output.at = function atContract(address) {
       function Contract() {
-        if (!(this instanceof Contract)) { throw new Error('the Contract instance requires the "new" flag in order to function normally.'); }
-
         const self = this;
         self.abi = contractABI || [];
         self.query = query;

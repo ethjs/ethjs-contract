@@ -50,9 +50,10 @@ npm install --save ethjs-contract
 ## Usage
 
 ```js
+const HttpProvider = require('ethjs-provider-http');
 const Eth = require('ethjs-query');
 const EthContract = require('ethjs-contract');
-const eth = new Eth(provider);
+const eth = new Eth(new HttpProvider('http://localhost:8545'));
 const contract = new EthContract(eth);
 
 const SimpleStore = contract(abi, bytecode, defaultTxObject);

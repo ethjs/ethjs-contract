@@ -90,55 +90,14 @@ function contractFactory(query) {
               const filterInputTypes = getKeys(methodObject.inputs, 'type', false);
               const filterTopic = sha3(`${methodObject.name}(${filterInputTypes.join(',')})`);
               const argsObject = Object.assign({}, methodArgs[0]) || {};
-              const filterObject = Object.assign(argsObject, {
-                to: self.address,
-                topics: [filterTopic],
-              });
 
-              const EventFilter = function EventFilter(filterInput, callbackInput) {
-                const watchSelf = this;
-                watchSelf.filter = new self.filters.Filter(filterInput, callbackInput);
-              };
-
-              EventFilter.prototype.stopWatching = function stopWatching(stopCallback) {
-                const watchSelf = this;
-                return watchSelf.filter.stopWatching(stopCallback);
-              };
-
-              EventFilter.prototype.watch = function watch(watchCallbackInput) {
-                var watchCallback = () => {}; // eslint-disable-line
-                const watchSelf = this;
-                if (typeof watchCallbackInput === 'function') watchCallback = watchCallbackInput;
-
-                return new Promise((watchResolve, watchReject) => {
-                  watchSelf.filter.watch((watchError, watchResult) => {
-                    if (!watchError && Array.isArray(watchResult) && watchResult.length > 0) {
-                      var newWatchResult = []; // eslint-disable-line
-
-                      try {
-                        watchResult.forEach((logObject, logIndex) => {
-                          const newLogObject = Object.assign({}, logObject);
-                          newLogObject.data = abi.decodeEvent(methodObject, logObject.data);
-                          newWatchResult[logIndex] = newLogObject;
-                        });
-
-                        watchResolve(null, newWatchResult);
-                        watchCallback(null, newWatchResult);
-                      } catch (decodeEventErrorMessage) {
-                        const decodeEventError = new Error(`[ethjs-contract] while decoding filter change event data from RPC '${JSON.stringify(watchResult)}': ${decodeEventErrorMessage}`);
-
-                        watchReject(decodeEventError);
-                        watchCallback(decodeEventError, null);
-                      }
-                    } else if (watchError) {
-                      watchReject(watchError);
-                      watchCallback(watchError, watchResult);
-                    }
-                  });
-                });
-              };
-
-              return new EventFilter(filterObject, methodCallback);
+              return new self.filters.Filter(Object.assign({}, argsObject, {
+                decoder: (logData) => abi.decodeEvent(methodObject, logData),
+                defaultFilterObject: Object.assign({}, (methodArgs[0] || {}), {
+                  to: self.address,
+                  topics: [filterTopic],
+                }),
+              }));
             }
           };
         });

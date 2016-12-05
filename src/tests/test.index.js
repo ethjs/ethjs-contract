@@ -6,7 +6,7 @@ const assert = require('chai').assert;
 const BN = require('bn.js'); // eslint-disable-line
 const server = TestRPC.server();
 const HttpProvider = require('ethjs-provider-http');
-server.listen(4000);
+server.listen(5001);
 
 describe('EthContract', () => {
   describe('should function normally', () => {
@@ -149,7 +149,7 @@ describe('EthContract', () => {
       // because test rpc was not funcitoning properly, I had to make another provider
       function FakeProvider() {
         const self = this;
-        self.provider = new HttpProvider('http://localhost:4000');
+        self.provider = new HttpProvider('http://localhost:5001');
       }
 
       FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
@@ -207,15 +207,24 @@ describe('EthContract', () => {
               assert.equal(typeof simpleStore.get, 'function');
               assert.equal(typeof simpleStore.SetComplete, 'function');
 
-              const setCompleteEvent = simpleStore.SetComplete({fromBlock: 'earliest', toBlock: 'latest'}, (setCompleteError, setCompleteResult) => { // eslint-disable-line
+              const setCompleteEvent = simpleStore.SetComplete(); // eslint-disable-line
+
+              assert.equal(typeof setCompleteEvent.new, 'function');
+              assert.equal(typeof setCompleteEvent.watch, 'function');
+              assert.equal(typeof setCompleteEvent.uninstall, 'function');
+              assert.equal(typeof setCompleteEvent.at, 'function');
+
+              setCompleteEvent.new({fromBlock: 'earliest', toBlock: 'latest'}, (setCompleteError, setCompleteResult) => { // eslint-disable-line
                 assert.equal(setCompleteError, null);
                 assert.equal(typeof setCompleteResult, 'object');
                 assert.equal(setCompleteResult.toString(10) > 0, true);
               });
-              setCompleteEvent.watch().catch((err) => {
+
+              setCompleteEvent.watch()
+              .catch((err) => {
                 assert.equal(typeof err, 'object');
 
-                setCompleteEvent.stopWatching((stopWatchingError) => {
+                setCompleteEvent.uninstall((stopWatchingError) => {
                   assert.equal(stopWatchingError, null);
 
                   done();
@@ -236,7 +245,7 @@ describe('EthContract', () => {
       // because test rpc was not funcitoning properly, I had to make another provider
       function FakeProvider() {
         const self = this;
-        self.provider = new HttpProvider('http://localhost:4000');
+        self.provider = new HttpProvider('http://localhost:5001');
       }
 
       FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
@@ -303,7 +312,8 @@ describe('EthContract', () => {
               assert.equal(typeof simpleStore.get, 'function');
               assert.equal(typeof simpleStore.SetComplete, 'function');
 
-              const setCompleteEvent = simpleStore.SetComplete({fromBlock: 'earliest', toBlock: 'latest'}, (setCompleteError, setCompleteResult) => { // eslint-disable-line
+              const setCompleteEvent = simpleStore.SetComplete(); // eslint-disable-line
+              setCompleteEvent.new({fromBlock: 'earliest', toBlock: 'latest'}, (setCompleteError, setCompleteResult) => { // eslint-disable-line
                 assert.equal(setCompleteError, null);
                 assert.equal(typeof setCompleteResult, 'object');
                 assert.equal(setCompleteResult.toString(10) > 0, true);
@@ -311,7 +321,7 @@ describe('EthContract', () => {
               setCompleteEvent.watch().catch((err) => {
                 assert.equal(typeof err, 'object');
 
-                setCompleteEvent.stopWatching((stopWatchingError) => {
+                setCompleteEvent.uninstall((stopWatchingError) => {
                   assert.equal(stopWatchingError, null);
 
                   done();
@@ -332,7 +342,7 @@ describe('EthContract', () => {
       // because test rpc was not funcitoning properly, I had to make another provider
       function FakeProvider() {
         const self = this;
-        self.provider = new HttpProvider('http://localhost:4000');
+        self.provider = new HttpProvider('http://localhost:5001');
       }
 
       FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
@@ -390,7 +400,8 @@ describe('EthContract', () => {
               assert.equal(typeof simpleStore.get, 'function');
               assert.equal(typeof simpleStore.SetComplete, 'function');
 
-              const setCompleteEvent = simpleStore.SetComplete({fromBlock: 'earliest', toBlock: 'latest'}, (setCompleteError, setCompleteResult) => { // eslint-disable-line
+              const setCompleteEvent = simpleStore.SetComplete(); // eslint-disable-line
+              setCompleteEvent.new({fromBlock: 'earliest', toBlock: 'latest'}, (setCompleteError, setCompleteResult) => { // eslint-disable-line
                 assert.equal(setCompleteError, null);
                 assert.equal(typeof setCompleteResult, 'object');
                 assert.equal(setCompleteResult.toString(10) > 0, true);
@@ -398,7 +409,7 @@ describe('EthContract', () => {
               setCompleteEvent.watch((err) => {
                 assert.equal(typeof err, 'object');
 
-                setCompleteEvent.stopWatching((stopWatchingError) => {
+                setCompleteEvent.uninstall((stopWatchingError) => {
                   assert.equal(stopWatchingError, null);
 
                   done();
@@ -419,7 +430,7 @@ describe('EthContract', () => {
       // because test rpc was not funcitoning properly, I had to make another provider
       function FakeProvider() {
         const self = this;
-        self.provider = new HttpProvider('http://localhost:4000');
+        self.provider = new HttpProvider('http://localhost:5001');
       }
 
       FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
@@ -486,7 +497,8 @@ describe('EthContract', () => {
               assert.equal(typeof simpleStore.get, 'function');
               assert.equal(typeof simpleStore.SetComplete, 'function');
 
-              const setCompleteEvent = simpleStore.SetComplete({fromBlock: 'earliest', toBlock: 'latest'}, (setCompleteError, setCompleteResult) => { // eslint-disable-line
+              const setCompleteEvent = simpleStore.SetComplete(); // eslint-disable-line
+              setCompleteEvent.new({fromBlock: 'earliest', toBlock: 'latest'}, (setCompleteError, setCompleteResult) => { // eslint-disable-line
                 assert.equal(setCompleteError, null);
                 assert.equal(typeof setCompleteResult, 'object');
                 assert.equal(setCompleteResult.toString(10) > 0, true);
@@ -497,7 +509,7 @@ describe('EthContract', () => {
                 assert.equal(result[0].blockNumber.toString(10), '436');
                 assert.equal(result[0].data._newValue.toString(10), 4500); // eslint-disable-line
 
-                setCompleteEvent.stopWatching((stopError, stopResult) => {
+                setCompleteEvent.uninstall((stopError, stopResult) => {
                   assert.equal(stopError, null);
                   assert.equal(typeof stopResult, 'boolean');
 
@@ -519,7 +531,7 @@ describe('EthContract', () => {
       // because test rpc was not funcitoning properly, I had to make another provider
       function FakeProvider() {
         const self = this;
-        self.provider = new HttpProvider('http://localhost:4000');
+        self.provider = new HttpProvider('http://localhost:5001');
       }
 
       FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {
@@ -584,7 +596,7 @@ describe('EthContract', () => {
       // because test rpc was not funcitoning properly, I had to make another provider
       function FakeProvider() {
         const self = this;
-        self.provider = new HttpProvider('http://localhost:4000');
+        self.provider = new HttpProvider('http://localhost:5001');
       }
 
       FakeProvider.prototype.sendAsync = function sendAsync(payload, callback) {

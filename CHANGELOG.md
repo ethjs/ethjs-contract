@@ -1,3 +1,9 @@
+# 0.1.1 -- new event object
+
+1. New Event object
+2. package upgrades and fixes
+3. More docs
+
 # 0.1.0 -- promises, full coverage
 
 1. Promises and callbacks on calls, new, event watchers

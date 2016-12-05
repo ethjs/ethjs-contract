@@ -71,14 +71,16 @@ simpleStore.get().catch((error) => {
   // result <BigNumber ...>
 });
 
-const filter = simpleStore.SetComplete((error, result) => {
+const filter = simpleStore.SetComplete()
+.new({ toBlock: 'latest' }, (error, result) => {
   // result null <BigNumber ...> filterId
 });
-filter.watch().then((result) => {
+filter.watch((err, result) => {
   // result null FilterResult {...}
 });
-filter.stopWatching((error, result) => {
-  // result null Boolean filterUninstalled
+filter.uninstall()
+.then(result) => {
+  // result Boolean
 });
 ```
 
@@ -90,14 +92,12 @@ A simple contract object for the Ethereum RPC layer.
 
 Please help better the ecosystem by submitting issues and pull requests to default. We need all the help we can get to build the absolute best linting standards and utilities. We follow the AirBNB linting standard and the unix philosophy.
 
-<!--
 ## Guides
 
-You'll find more detailed information on using default and tailoring it to your needs in our guides:
+You'll find more detailed information on using `ethjs-contract` and tailoring it to your needs in our guides:
 
 - [User guide](docs/user-guide.md) - Usage, configuration, FAQ and complementary tools.
-- [Developer guide](docs/developer-guide.md) - Contributing to wafr and writing your own plugins & formatters.
--->
+- [Developer guide](docs/developer-guide.md) - Contributing to `ethjs-contract` and writing your own code and coverage.
 
 ## Help out
 

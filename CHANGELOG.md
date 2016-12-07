@@ -1,3 +1,8 @@
+# 0.1.2 -- ethjs-abi update
+
+1. updated ethjs-abi module
+2. more docs
+
 # 0.1.1 -- new event object
 
 1. New Event object

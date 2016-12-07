@@ -261,6 +261,16 @@ eth.accounts().then((accounts) => {
 
 All `Contract` object prototype methods support both promises and callbacks. `EventFilter` objects also have complete promise support.
 
+## Why BN.js?
+
+`ethjs` has made a policy of using `BN.js` across all of its repositories. Here are some of the reasons why:
+
+  1. lighter than alternatives (BigNumber.js)
+  2. faster than most alternatives, see [benchmarks](https://github.com/indutny/bn.js/issues/89)
+  3. used by the Ethereum foundation across all [`ethereumjs`](https://github.com/ethereumjs) repositories
+  4. is already used by a critical JS dependency of many ethereum packages, see package [`elliptic`](https://github.com/indutny/elliptic)
+  5. purposefully **does not support decimals or floats numbers** (for greater precision), remember, the Ethereum blockchain cannot and will not support float values or decimal numbers.
+
 ## Browser Builds
 
 `ethjs` provides production distributions for all of its modules that are ready for use in the browser right away. Simply include either `dist/ethjs-contract.js` or `dist/ethjs-contract.min.js` directly into an HTML file to start using this module. Note, an `EthContract` object is made available globally.
@@ -276,6 +286,26 @@ Note, even though `ethjs` should have transformed and polyfilled most of the req
 
 Use a polyfill service such as `Polyfill.io` to ensure complete cross-browser support:
 https://polyfill.io/
+
+## Latest Webpack Figures
+
+Hash: 400293a543e2948599b4                                                         
+Version: webpack 2.1.0-beta.15
+Time: 2313ms
+                Asset    Size  Chunks             Chunk Names
+    ethjs-contract.js  440 kB       0  [emitted]  main
+ethjs-contract.js.map  539 kB       0  [emitted]  main
+    + 5 hidden modules
+
+> ethjs-contract@0.1.2 build:umd:min /home/nick/github/ethjs-contract
+> cross-env BABEL_ENV=commonjs NODE_ENV=production webpack --config ./internals/webpack/webpack.config.js ./lib/index.js --progress
+
+Hash: 2bd4234ffcb681030dbb                                                         
+Version: webpack 2.1.0-beta.15
+Time: 5754ms
+                Asset    Size  Chunks             Chunk Names
+ethjs-contract.min.js  191 kB       0  [emitted]  main
+    + 5 hidden modules
 
 ## Other Awesome Modules, Tools and Frameworks
 

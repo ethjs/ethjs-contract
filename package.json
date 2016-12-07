@@ -1,6 +1,6 @@
 {
   "name": "ethjs-contract",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A simple contract object for the Ethereum RPC.",
   "main": "lib/index.js",
   "browser": "dist/ethjs-contract.js",
@@ -102,10 +102,10 @@
     }
   },
   "dependencies": {
-    "ethjs-abi": "^0.1.1",
-    "ethjs-filter": "^0.1.4",
+    "ethjs-abi": "0.1.2",
+    "ethjs-filter": "0.1.4",
     "ethjs-sha3": "0.1.1",
-    "ethjs-util": "0.1.1"
+    "ethjs-util": "0.1.2"
   },
   "devDependencies": {
     "babel-cli": "6.18.0",

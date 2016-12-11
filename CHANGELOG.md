@@ -1,3 +1,8 @@
+# 0.1.3 -- config fixes
+
+1. webpack config updates
+2. build config updates
+
 # 0.1.2 -- ethjs-abi update
 
 1. updated ethjs-abi module

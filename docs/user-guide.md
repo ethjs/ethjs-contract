@@ -289,35 +289,49 @@ https://polyfill.io/
 
 ## Latest Webpack Figures
 
-Hash: 400293a543e2948599b4                                                         
+```
+Hash: af26c59cb1983030a7c0                                                            
 Version: webpack 2.1.0-beta.15
-Time: 2313ms
+Time: 1229ms
                 Asset    Size  Chunks             Chunk Names
-    ethjs-contract.js  440 kB       0  [emitted]  main
-ethjs-contract.js.map  539 kB       0  [emitted]  main
-    + 5 hidden modules
+    ethjs-contract.js  220 kB       0  [emitted]  main
+ethjs-contract.js.map  270 kB       0  [emitted]  main
+    + 23 hidden modules
 
-> ethjs-contract@0.1.2 build:umd:min /home/nick/github/ethjs-contract
+> ethjs-contract@0.1.3 build:umd:min /home/nick/github/ethjs-contract
 > cross-env BABEL_ENV=commonjs NODE_ENV=production webpack --config ./internals/webpack/webpack.config.js ./lib/index.js --progress
 
-Hash: 2bd4234ffcb681030dbb                                                         
+Hash: a93eb96124c918d3c9bb                                                            
 Version: webpack 2.1.0-beta.15
-Time: 5754ms
+Time: 3481ms
                 Asset    Size  Chunks             Chunk Names
-ethjs-contract.min.js  191 kB       0  [emitted]  main
-    + 5 hidden modules
+ethjs-contract.min.js  100 kB       0  [emitted]  main
+    + 23 hidden modules
+```
 
 ## Other Awesome Modules, Tools and Frameworks
 
- - [web3.js](https://github.com/ethereum/web3.js) -- the original Ethereum swiss army knife **Ethereum Foundation**
- - [ethereumjs](https://github.com/ethereumjs) -- critical ethereumjs infrastructure **Ethereum Foundation**
+### Foundation
+ - [web3.js](https://github.com/ethereum/web3.js) -- the original Ethereum JS swiss army knife **Ethereum Foundation**
+ - [ethereumjs](https://github.com/ethereumjs) -- critical ethereum javascript infrastructure **Ethereum Foundation**
  - [browser-solidity](https://ethereum.github.io/browser-solidity) -- an in browser Solidity IDE **Ethereum Foundation**
+
+### Nodes
+  - [geth](https://github.com/ethereum/go-ethereum) Go-Ethereum
+  - [parity](https://github.com/ethcore/parity) Rust-Ethereum build in Rust
+  - [testrpc](https://github.com/ethereumjs/testrpc) Testing Node (ethereumjs-vm)
+
+### Testing
  - [wafr](https://github.com/silentcicero/wafr) -- a super simple Solidity testing framework
  - [truffle](https://github.com/ConsenSys/truffle) -- a solidity/js dApp framework
  - [embark](https://github.com/iurimatias/embark-framework) -- a solidity/js dApp framework
  - [dapple](https://github.com/nexusdev/dapple) -- a solidity dApp framework
  - [chaitherium](https://github.com/SafeMarket/chaithereum) -- a JS web3 unit testing framework
  - [contest](https://github.com/DigixGlobal/contest) -- a JS testing framework for contracts
+
+### Wallets
+ - [ethers-wallet](https://github.com/ethers-io/ethers-wallet) -- an amazingly small Ethereum wallet
+ - [metamask](https://metamask.io/) -- turns your browser into an Ethereum enabled browser =D
 
 ## Our Relationship with Ethereum & EthereumJS
 

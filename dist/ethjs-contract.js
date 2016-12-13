@@ -6274,7 +6274,7 @@ function contractFactory(query) {
                 }
 
                 if (hasTransactionObject(methodArgs)) providedTxObject = methodArgs.pop();
-                var methodTxObject = Object.assign(self.defaultTxObject, providedTxObject, {
+                var methodTxObject = Object.assign({}, self.defaultTxObject, providedTxObject, {
                   to: self.address
                 });
                 methodTxObject.data = abi.encodeMethod(methodObject, methodArgs);

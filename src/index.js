@@ -73,7 +73,7 @@ function contractFactory(query) {
                 }
 
                 if (hasTransactionObject(methodArgs)) providedTxObject = methodArgs.pop();
-                const methodTxObject = Object.assign(
+                const methodTxObject = Object.assign({},
                   self.defaultTxObject,
                   providedTxObject, {
                     to: self.address,

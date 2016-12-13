@@ -1,17 +1,21 @@
+# 0.1.4 -- fix object mutation
+
+1. Fix object mutation with eth_call, eth_sendTransaction
+
 # 0.1.3 -- config fixes
 
-1. webpack config updates
-2. build config updates
+1. Webpack config updates
+2. Build config updates
 
 # 0.1.2 -- ethjs-abi update
 
-1. updated ethjs-abi module
-2. more docs
+1. Updated ethjs-abi module
+2. More docs
 
 # 0.1.1 -- new event object
 
 1. New Event object
-2. package upgrades and fixes
+2. Package upgrades and fixes
 3. More docs
 
 # 0.1.0 -- promises, full coverage

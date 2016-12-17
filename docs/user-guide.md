@@ -290,23 +290,19 @@ https://polyfill.io/
 ## Latest Webpack Figures
 
 ```
-Hash: af26c59cb1983030a7c0                                                            
+Hash: 7a3fde336c393e27e46b                  
 Version: webpack 2.1.0-beta.15
-Time: 1229ms
+Time: 891ms
                 Asset    Size  Chunks             Chunk Names
-    ethjs-contract.js  220 kB       0  [emitted]  main
-ethjs-contract.js.map  270 kB       0  [emitted]  main
-    + 23 hidden modules
+    ethjs-contract.js  204 kB       0  [emitted]  main
+ethjs-contract.js.map  249 kB       0  [emitted]  main
+    + 17 hidden modules
 
-> ethjs-contract@0.1.3 build:umd:min /home/nick/github/ethjs-contract
-> cross-env BABEL_ENV=commonjs NODE_ENV=production webpack --config ./internals/webpack/webpack.config.js ./lib/index.js --progress
-
-Hash: a93eb96124c918d3c9bb                                                            
 Version: webpack 2.1.0-beta.15
-Time: 3481ms
-                Asset    Size  Chunks             Chunk Names
-ethjs-contract.min.js  100 kB       0  [emitted]  main
-    + 23 hidden modules
+Time: 3276ms
+                Asset     Size  Chunks             Chunk Names
+ethjs-contract.min.js  89.4 kB       0  [emitted]  main
+    + 17 hidden modules
 ```
 
 ## Other Awesome Modules, Tools and Frameworks

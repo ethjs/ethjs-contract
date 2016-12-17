@@ -1,5 +1,5 @@
 const abi = require('ethjs-abi'); // eslint-disable-line
-const sha3 = require('ethjs-sha3'); // eslint-disable-line
+const keccak256 = require('js-sha3').keccak_256; // eslint-disable-line
 const EthFilter = require('ethjs-filter'); // eslint-disable-line
 const getKeys = require('ethjs-util').getKeys; // eslint-disable-line
 const arrayContainsArray = require('ethjs-util').arrayContainsArray;
@@ -88,7 +88,7 @@ function contractFactory(query) {
               });
             } else if (methodObject.type === 'event') {
               const filterInputTypes = getKeys(methodObject.inputs, 'type', false);
-              const filterTopic = sha3(`${methodObject.name}(${filterInputTypes.join(',')})`);
+              const filterTopic = `0x${keccak256(`${methodObject.name}(${filterInputTypes.join(',')})`)}`;
               const argsObject = Object.assign({}, methodArgs[0]) || {};
 
               return new self.filters.Filter(Object.assign({}, argsObject, {

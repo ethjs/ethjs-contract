@@ -1,3 +1,7 @@
+# 0.1.5 -- remove ethjs-sha3 for js-sha3
+
+1. Removed `ethjs-sha3` for `js-sha3`.
+
 # 0.1.4 -- fix object mutation
 
 1. Fix object mutation with eth_call, eth_sendTransaction

@@ -1,3 +1,7 @@
+# 0.1.6 -- BN formatting update
+
+1. Bn formatting update
+
 # 0.1.5 -- remove ethjs-sha3 for js-sha3
 
 1. Removed `ethjs-sha3` for `js-sha3`.

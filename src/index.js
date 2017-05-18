@@ -94,7 +94,6 @@ function contractFactory(query) {
               return new self.filters.Filter(Object.assign({}, argsObject, {
                 decoder: (logData) => abi.decodeEvent(methodObject, logData),
                 defaultFilterObject: Object.assign({}, (methodArgs[0] || {}), {
-                  to: self.address,
                   topics: [filterTopic],
                 }),
               }));

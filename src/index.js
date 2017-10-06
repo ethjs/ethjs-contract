@@ -49,42 +49,27 @@ function contractFactory(query) {
             }
 
             if (methodObject.type === 'function') {
-              return new Promise((resolve, reject) => {
-                function newMethodCallback(callbackError, callbackResult) {
-                  if (queryMethod === 'call' && !callbackError) {
-                    try {
-                      const decodedMethodResult = abi.decodeMethod(methodObject, callbackResult);
+              if (hasTransactionObject(methodArgs)) providedTxObject = methodArgs.pop();
+              var methodTxObject = Object.assign({}, self.defaultTxObject, providedTxObject, {
+                to: self.address
+              });
+              methodTxObject.data = abi.encodeMethod(methodObject, methodArgs);
 
-                      resolve(decodedMethodResult);
-                      methodCallback(null, decodedMethodResult);
-                    } catch (decodeFormattingError) {
-                      const decodingError = new Error(`[ethjs-contract] while formatting incoming raw call data ${JSON.stringify(callbackResult)} ${decodeFormattingError}`);
+              if (methodObject.constant === false) {
+                queryMethod = 'sendTransaction';
+              }
 
-                      reject(decodingError);
-                      methodCallback(decodingError, null);
-                    }
-                  } else if (queryMethod === 'sendTransaction' && !callbackError) {
-                    resolve(callbackResult);
-                    methodCallback(null, callbackResult);
-                  } else {
-                    reject(callbackError);
-                    methodCallback(callbackError, null);
+              return query[queryMethod](methodTxObject).then(callbackResult => {
+                if (queryMethod === 'call') {
+                  try {
+                    var decodedMethodResult = abi.decodeMethod(methodObject, callbackResult);
+                    return decodedMethodResult;
+                  } catch (decodeFormattingError) {
+                    throw new Error('[ethjs-contract] while formatting incoming raw call data ' + JSON.stringify(callbackResult) + ' ' + decodeFormattingError);
                   }
+                } else if (queryMethod === 'sendTransaction') {
+                  return callbackResult;
                 }
-
-                if (hasTransactionObject(methodArgs)) providedTxObject = methodArgs.pop();
-                const methodTxObject = Object.assign({},
-                  self.defaultTxObject,
-                  providedTxObject, {
-                    to: self.address,
-                  });
-                methodTxObject.data = abi.encodeMethod(methodObject, methodArgs);
-
-                if (methodObject.constant === false) {
-                  queryMethod = 'sendTransaction';
-                }
-
-                query[queryMethod](methodTxObject, newMethodCallback);
               });
             } else if (methodObject.type === 'event') {
               const filterInputTypes = getKeys(methodObject.inputs, 'type', false);

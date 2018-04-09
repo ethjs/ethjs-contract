@@ -107,7 +107,7 @@ function contractFactory(query) {
 
     output.new = function newContract() {
       var providedTxObject = {}; // eslint-disable-line
-      var newMethodCallback = () => {}; // eslint-disable-line
+      var newMethodCallback; // eslint-disable-line
       const newMethodArgs = [].slice.call(arguments); // eslint-disable-line
       if (typeof newMethodArgs[newMethodArgs.length - 1] === 'function') newMethodCallback = newMethodArgs.pop();
       if (hasTransactionObject(newMethodArgs)) providedTxObject = newMethodArgs.pop();
@@ -125,7 +125,9 @@ function contractFactory(query) {
         assembleTxObject.data = `${assembleTxObject.data}${constructBytecode}`;
       }
 
-      return query.sendTransaction(assembleTxObject, newMethodCallback);
+      const txArgs = [assembleTxObject];
+      if (newMethodCallback) txArgs.push(newMethodCallback);
+      return query.sendTransaction.apply(query, txArgs);
     };
 
     return output;

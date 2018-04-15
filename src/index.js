@@ -107,7 +107,7 @@ function contractFactory(query) {
 
     output.new = function newContract() {
       var providedTxObject = {}; // eslint-disable-line
-      var newMethodCallback = () => {}; // eslint-disable-line
+      var newMethodCallback = null; // eslint-disable-line
       const newMethodArgs = [].slice.call(arguments); // eslint-disable-line
       if (typeof newMethodArgs[newMethodArgs.length - 1] === 'function') newMethodCallback = newMethodArgs.pop();
       if (hasTransactionObject(newMethodArgs)) providedTxObject = newMethodArgs.pop();
@@ -123,6 +123,10 @@ function contractFactory(query) {
       if (constructMethod) {
         const constructBytecode = abi.encodeParams(getKeys(constructMethod.inputs, 'type'), newMethodArgs).substring(2); // eslint-disable-line
         assembleTxObject.data = `${assembleTxObject.data}${constructBytecode}`;
+      }
+
+      if (newMethodCallback === null) {
+        return query.sendTransaction(assembleTxObject);
       }
 
       return query.sendTransaction(assembleTxObject, newMethodCallback);

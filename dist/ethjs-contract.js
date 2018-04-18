@@ -6090,7 +6090,7 @@ function Result() {}
 
 function encodeParams(types, values) {
   if (types.length !== values.length) {
-    throw new Error('[ethjs-abi] while encoding params, types/values mismatch, types length ' + types.length + ' should be ' + values.length);
+    throw new Error('[ethjs-abi] while encoding params, types/values mismatch, Your contract requires ' + types.length + ' types (arguments), and you passed in ' + values.length);
   }
 
   var parts = [];
@@ -6137,6 +6137,8 @@ function encodeParams(types, values) {
 
 // decode bytecode data from output names and types
 function decodeParams(names, types, data) {
+  var useNumberedParams = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+
   // Names is optional, so shift over all the parameters if not provided
   if (arguments.length < 3) {
     data = types;
@@ -6158,7 +6160,7 @@ function decodeParams(names, types, data) {
       var result = coder.decode(data, offset);
       offset += result.consumed;
     }
-    values[index] = result.value;
+    if (useNumberedParams) values[index] = result.value;
     if (names[index]) {
       values[names[index]] = result.value;
     }
@@ -6188,12 +6190,61 @@ function encodeEvent(eventObject, values) {
   return encodeMethod(eventObject, values);
 }
 
-// decode method data bytecode, from method ABI object
-function decodeEvent(eventObject, data) {
-  var inputNames = utils.getKeys(eventObject.inputs, 'name', true);
-  var inputTypes = utils.getKeys(eventObject.inputs, 'type');
+function eventSignature(eventObject) {
+  var signature = eventObject.name + '(' + utils.getKeys(eventObject.inputs, 'type').join(',') + ')';
+  return '0x' + utils.keccak256(signature);
+}
 
-  return decodeParams(inputNames, inputTypes, utils.hexOrBuffer(data));
+// decode method data bytecode, from method ABI object
+function decodeEvent(eventObject, data, topics) {
+  var useNumberedParams = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+
+  var nonIndexed = eventObject.inputs.filter(function (input) {
+    return !input.indexed;
+  });
+  var nonIndexedNames = utils.getKeys(nonIndexed, 'name', true);
+  var nonIndexedTypes = utils.getKeys(nonIndexed, 'type');
+  var event = decodeParams(nonIndexedNames, nonIndexedTypes, utils.hexOrBuffer(data), useNumberedParams);
+  var topicOffset = eventObject.anonymous ? 0 : 1;
+  eventObject.inputs.filter(function (input) {
+    return input.indexed;
+  }).map(function (input, i) {
+    var topic = new Buffer(topics[i + topicOffset].slice(2), 'hex');
+    var coder = getParamCoder(input.type);
+    event[input.name] = coder.decode(topic, 0).value;
+  });
+  event._eventName = eventObject.name;
+  return event;
+}
+
+// Decode a specific log item with a specific event abi
+function decodeLogItem(eventObject, log) {
+  var useNumberedParams = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+
+  if (eventObject && log.topics[0] === eventSignature(eventObject)) {
+    return decodeEvent(eventObject, log.data, log.topics, useNumberedParams);
+  }
+}
+
+// Create a decoder for all events defined in an abi. It returns a function which is called
+// on an array of log entries such as received from getLogs or getTransactionReceipt and parses
+// any matching log entries
+function logDecoder(abi) {
+  var useNumberedParams = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+
+  var eventMap = {};
+  abi.filter(function (item) {
+    return item.type === 'event';
+  }).map(function (item) {
+    eventMap[eventSignature(item)] = item;
+  });
+  return function (logItems) {
+    return logItems.map(function (log) {
+      return decodeLogItem(eventMap[log.topics[0]], log, useNumberedParams);
+    }).filter(function (i) {
+      return i;
+    });
+  };
 }
 
 module.exports = {
@@ -6202,7 +6253,10 @@ module.exports = {
   encodeMethod: encodeMethod,
   decodeMethod: decodeMethod,
   encodeEvent: encodeEvent,
-  decodeEvent: decodeEvent
+  decodeEvent: decodeEvent,
+  decodeLogItem: decodeLogItem,
+  logDecoder: logDecoder,
+  eventSignature: eventSignature
 };
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0).Buffer))
 
@@ -6236,7 +6290,9 @@ function constructFilter(filterName, query) {
             try {
               changeResult.forEach(function (log, logIndex) {
                 decodedChangeResults[logIndex] = changeResult[logIndex];
-                decodedChangeResults[logIndex].data = self.options.decoder(decodedChangeResults[logIndex].data);
+                if (typeof changeResult[logIndex] === 'object') {
+                  decodedChangeResults[logIndex].data = self.options.decoder(decodedChangeResults[logIndex].data);
+                }
               });
             } catch (decodingErrorMesage) {
               decodingError = new Error('[ethjs-filter] while decoding filter change event data from RPC \'' + JSON.stringify(decodedChangeResults) + '\': ' + decodingErrorMesage);
@@ -6251,16 +6307,13 @@ function constructFilter(filterName, query) {
             }
 
             if (decodingError) {
-              watcher.reject(decodingError);
               watcher.callback(decodingError, null);
             } else {
               if (changeError) {
-                watcher.reject(changeError);
+                watcher.callback(changeError, null);
               } else if (Array.isArray(decodedChangeResults) && changeResult.length > 0) {
-                watcher.resolve(decodedChangeResults);
+                watcher.callback(changeError, decodedChangeResults);
               }
-
-              watcher.callback(changeError, decodedChangeResults);
             }
           });
         });
@@ -6277,38 +6330,42 @@ function constructFilter(filterName, query) {
     var callback = watchCallbackInput || function () {}; // eslint-disable-line
     var self = this;
     var id = Math.random().toString(36).substring(7);
-    var output = new Promise(function (resolve, reject) {
-      self.watchers[id] = { resolve: resolve, reject: reject, callback: callback, stop: false };
-    });
+    self.watchers[id] = { callback: callback, stop: false, stopWatching: function stopWatching() {
+        self.watchers[id].stop = true;
+      } };
 
-    output.stopWatching = function stopWatching() {
-      self.watchers[id].stop = true;
-    };
-
-    return output;
+    return self.watchers[id];
   };
 
   Filter.prototype.uninstall = function uninstallFilter(cb) {
     var self = this;
-    var callback = cb || function emptyCallback() {};
+    var callback = cb || null;
     self.watchers = Object.assign({});
     clearInterval(self.interval);
 
-    return new Promise(function (resolve, reject) {
+    var prom = new Promise(function (resolve, reject) {
       query.uninstallFilter(self.filterId, function (uninstallError, uninstallResilt) {
         if (uninstallError) {
           reject(uninstallError);
         } else {
           resolve(uninstallResilt);
         }
-
-        callback(uninstallError, uninstallResilt);
       });
     });
+
+    if (callback) {
+      prom.then(function (res) {
+        return callback(null, res);
+      })['catch'](function (err) {
+        return callback(err, null);
+      });
+    }
+
+    return callback ? null : prom;
   };
 
   Filter.prototype['new'] = function newFilter() {
-    var callback = function callback() {}; // eslint-disable-line
+    var callback = null; // eslint-disable-line
     var self = this;
     var filterInputs = [];
     var args = [].slice.call(arguments); // eslint-disable-line
@@ -6322,7 +6379,7 @@ function constructFilter(filterName, query) {
       filterInputs.push(Object.assign(self.options.defaultFilterObject, args[args.length - 1] || {}));
     }
 
-    return new Promise(function (resolve, reject) {
+    var prom = new Promise(function (resolve, reject) {
       // add complex callback
       filterInputs.push(function (setupError, filterId) {
         if (!setupError) {
@@ -6331,13 +6388,21 @@ function constructFilter(filterName, query) {
         } else {
           reject(setupError);
         }
-
-        callback(setupError, filterId);
       });
 
       // apply filter, call new.. filter method
       query['new' + filterName].apply(query, filterInputs);
     });
+
+    if (callback) {
+      prom.then(function (res) {
+        return callback(null, res);
+      })['catch'](function (err) {
+        return callback(err, null);
+      });
+    }
+
+    return callback ? null : prom;
   };
 
   return Filter;
@@ -6407,6 +6472,16 @@ function getCallableMethodsFromABI(contractABI) {
 
 function contractFactory(query) {
   return function ContractFactory(contractABI, contractBytecode, contractDefaultTxObject) {
+    if (!Array.isArray(contractABI)) {
+      throw new Error('[ethjs-contract] Contract ABI must be type Array, got type ' + typeof contractABI);
+    }
+    if (typeof contractBytecode !== 'undefined' && typeof contractBytecode !== 'string') {
+      throw new Error('[ethjs-contract] Contract bytecode must be type String, got type ' + typeof contractBytecode);
+    }
+    if (typeof contractDefaultTxObject !== 'undefined' && typeof contractDefaultTxObject !== 'object') {
+      throw new Error('[ethjs-contract] Contract default tx object must be type Object, got type ' + typeof contractABI);
+    }
+
     var output = {};
     output.at = function atContract(address) {
       function Contract() {
@@ -6423,33 +6498,29 @@ function contractFactory(query) {
             // eslint-disable-line
             var queryMethod = 'call'; // eslint-disable-line
             var providedTxObject = {}; // eslint-disable-line
-            var methodCallback = function methodCallback() {}; // eslint-disable-line
+            var methodCallback; // eslint-disable-line
             var methodArgs = [].slice.call(arguments); // eslint-disable-line
             if (typeof methodArgs[methodArgs.length - 1] === 'function') {
               methodCallback = methodArgs.pop();
             }
 
             if (methodObject.type === 'function') {
-              return new Promise(function (resolve, reject) {
+              var prom = new Promise(function (resolve, reject) {
                 function newMethodCallback(callbackError, callbackResult) {
                   if (queryMethod === 'call' && !callbackError) {
                     try {
                       var decodedMethodResult = abi.decodeMethod(methodObject, callbackResult);
 
                       resolve(decodedMethodResult);
-                      methodCallback(null, decodedMethodResult);
                     } catch (decodeFormattingError) {
                       var decodingError = new Error('[ethjs-contract] while formatting incoming raw call data ' + JSON.stringify(callbackResult) + ' ' + decodeFormattingError);
 
                       reject(decodingError);
-                      methodCallback(decodingError, null);
                     }
                   } else if (queryMethod === 'sendTransaction' && !callbackError) {
                     resolve(callbackResult);
-                    methodCallback(null, callbackResult);
                   } else {
                     reject(callbackError);
-                    methodCallback(callbackError, null);
                   }
                 }
 
@@ -6465,19 +6536,37 @@ function contractFactory(query) {
 
                 query[queryMethod](methodTxObject, newMethodCallback);
               });
-            } else if (methodObject.type === 'event') {
-              var filterInputTypes = getKeys(methodObject.inputs, 'type', false);
-              var filterTopic = '0x' + keccak256(methodObject.name + '(' + filterInputTypes.join(',') + ')');
-              var argsObject = Object.assign({}, methodArgs[0]) || {};
 
-              return new self.filters.Filter(Object.assign({}, argsObject, {
-                decoder: function decoder(logData) {
-                  return abi.decodeEvent(methodObject, logData);
-                },
-                defaultFilterObject: Object.assign({}, methodArgs[0] || {}, {
-                  topics: [filterTopic]
-                })
-              }));
+              if (methodCallback) {
+                prom.then(function (res) {
+                  return methodCallback(null, res);
+                })['catch'](function (err) {
+                  return methodCallback(err, null);
+                });
+              }
+
+              return methodCallback ? null : prom;
+            } else if (methodObject.type === 'event') {
+              var _ret = function () {
+                var filterInputTypes = getKeys(methodObject.inputs, 'type', false);
+                var filterTopic = '0x' + keccak256(methodObject.name + '(' + filterInputTypes.join(',') + ')');
+                var filterTopcis = [filterTopic];
+                var argsObject = Object.assign({}, methodArgs[0]) || {};
+
+                return {
+                  v: new self.filters.Filter(Object.assign({}, argsObject, {
+                    decoder: function decoder(logData) {
+                      return abi.decodeEvent(methodObject, logData, filterTopcis);
+                    },
+                    defaultFilterObject: Object.assign({}, methodArgs[0] || {}, {
+                      to: self.address,
+                      topics: filterTopcis
+                    })
+                  }))
+                };
+              }();
+
+              if (typeof _ret === "object") return _ret.v;
             }
           };
         });
@@ -6488,7 +6577,7 @@ function contractFactory(query) {
 
     output['new'] = function newContract() {
       var providedTxObject = {}; // eslint-disable-line
-      var newMethodCallback = function newMethodCallback() {}; // eslint-disable-line
+      var newMethodCallback = null; // eslint-disable-line
       var newMethodArgs = [].slice.call(arguments); // eslint-disable-line
       if (typeof newMethodArgs[newMethodArgs.length - 1] === 'function') newMethodCallback = newMethodArgs.pop();
       if (hasTransactionObject(newMethodArgs)) providedTxObject = newMethodArgs.pop();
@@ -6506,7 +6595,7 @@ function contractFactory(query) {
         assembleTxObject.data = '' + assembleTxObject.data + constructBytecode;
       }
 
-      return query.sendTransaction(assembleTxObject, newMethodCallback);
+      return newMethodCallback ? query.sendTransaction(assembleTxObject, newMethodCallback) : query.sendTransaction(assembleTxObject);
     };
 
     return output;
@@ -6540,6 +6629,8 @@ for (var i = 0, len = code.length; i < len; ++i) {
   revLookup[code.charCodeAt(i)] = i
 }
 
+// Support decoding URL-safe base64 strings, as Node.js does.
+// See: https://en.wikipedia.org/wiki/Base64#URL_applications
 revLookup['-'.charCodeAt(0)] = 62
 revLookup['_'.charCodeAt(0)] = 63
 
@@ -6559,22 +6650,22 @@ function placeHoldersCount (b64) {
 
 function byteLength (b64) {
   // base64 is 4/3 + up to two characters of the original data
-  return b64.length * 3 / 4 - placeHoldersCount(b64)
+  return (b64.length * 3 / 4) - placeHoldersCount(b64)
 }
 
 function toByteArray (b64) {
-  var i, j, l, tmp, placeHolders, arr
+  var i, l, tmp, placeHolders, arr
   var len = b64.length
   placeHolders = placeHoldersCount(b64)
 
-  arr = new Arr(len * 3 / 4 - placeHolders)
+  arr = new Arr((len * 3 / 4) - placeHolders)
 
   // if there are placeholders, only get up to the last complete 4 chars
   l = placeHolders > 0 ? len - 4 : len
 
   var L = 0
 
-  for (i = 0, j = 0; i < l; i += 4, j += 3) {
+  for (i = 0; i < l; i += 4) {
     tmp = (revLookup[b64.charCodeAt(i)] << 18) | (revLookup[b64.charCodeAt(i + 1)] << 12) | (revLookup[b64.charCodeAt(i + 2)] << 6) | revLookup[b64.charCodeAt(i + 3)]
     arr[L++] = (tmp >> 16) & 0xFF
     arr[L++] = (tmp >> 8) & 0xFF
@@ -6601,7 +6692,7 @@ function encodeChunk (uint8, start, end) {
   var tmp
   var output = []
   for (var i = start; i < end; i += 3) {
-    tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2])
+    tmp = ((uint8[i] << 16) & 0xFF0000) + ((uint8[i + 1] << 8) & 0xFF00) + (uint8[i + 2] & 0xFF)
     output.push(tripletToBase64(tmp))
   }
   return output.join('')
@@ -6800,7 +6891,7 @@ function coderFixedBytes(length) {
       return result;
     },
     decode: function decodeFixedBytes(data, offset) {
-      if (data.length < offset + 32) {
+      if (data.length !== 0 && data.length < offset + 32) {
         throw new Error('[ethjs-abi] while decoding fixed bytes, invalid bytes data length: ' + length);
       }
 
@@ -6825,7 +6916,13 @@ var coderAddress = {
     return result;
   },
   decode: function decodeAddress(data, offset) {
-    if (data.length < offset + 32) {
+    if (data.length === 0) {
+      return {
+        consumed: 32,
+        value: '0x'
+      };
+    }
+    if (data.length !== 0 && data.length < offset + 32) {
       throw new Error('[ethjs-abi] while decoding address data, invalid address data, invalid byte length ' + data.length);
     }
     return {
@@ -6844,13 +6941,13 @@ function encodeDynamicBytesHelper(value) {
 }
 
 function decodeDynamicBytesHelper(data, offset) {
-  if (data.length < offset + 32) {
+  if (data.length !== 0 && data.length < offset + 32) {
     throw new Error('[ethjs-abi] while decoding dynamic bytes data, invalid bytes length: ' + data.length + ' should be less than ' + (offset + 32));
   }
 
   var length = uint256Coder.decode(data, offset).value; // eslint-disable-line
   length = length.toNumber();
-  if (data.length < offset + 32 + length) {
+  if (data.length !== 0 && data.length < offset + 32 + length) {
     throw new Error('[ethjs-abi] while decoding dynamic bytes data, invalid bytes length: ' + data.length + ' should be less than ' + (offset + 32 + length));
   }
 
@@ -7064,7 +7161,7 @@ module.exports = {
 
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
-  var eLen = nBytes * 8 - mLen - 1
+  var eLen = (nBytes * 8) - mLen - 1
   var eMax = (1 << eLen) - 1
   var eBias = eMax >> 1
   var nBits = -7
@@ -7077,12 +7174,12 @@ exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   e = s & ((1 << (-nBits)) - 1)
   s >>= (-nBits)
   nBits += eLen
-  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
 
   m = e & ((1 << (-nBits)) - 1)
   e >>= (-nBits)
   nBits += mLen
-  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
 
   if (e === 0) {
     e = 1 - eBias
@@ -7097,7 +7194,7 @@ exports.read = function (buffer, offset, isLE, mLen, nBytes) {
 
 exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   var e, m, c
-  var eLen = nBytes * 8 - mLen - 1
+  var eLen = (nBytes * 8) - mLen - 1
   var eMax = (1 << eLen) - 1
   var eBias = eMax >> 1
   var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
@@ -7130,7 +7227,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
       m = 0
       e = eMax
     } else if (e + eBias >= 1) {
-      m = (value * c - 1) * Math.pow(2, mLen)
+      m = ((value * c) - 1) * Math.pow(2, mLen)
       e = e + eBias
     } else {
       m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)

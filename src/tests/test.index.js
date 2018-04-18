@@ -220,8 +220,7 @@ describe('EthContract', () => {
                 assert.equal(setCompleteResult.toString(10) > 0, true);
               });
 
-              setCompleteEvent.watch()
-              .catch((err) => {
+              setCompleteEvent.watch((err) => {
                 assert.equal(typeof err, 'object');
 
                 setCompleteEvent.uninstall((stopWatchingError) => {
@@ -318,7 +317,7 @@ describe('EthContract', () => {
                 assert.equal(typeof setCompleteResult, 'object');
                 assert.equal(setCompleteResult.toString(10) > 0, true);
               });
-              setCompleteEvent.watch().catch((err) => {
+              setCompleteEvent.watch(err => {
                 assert.equal(typeof err, 'object');
 
                 setCompleteEvent.uninstall((stopWatchingError) => {

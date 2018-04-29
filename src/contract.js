@@ -3,6 +3,7 @@ const EthFilter = require('ethjs-filter'); // eslint-disable-line
 const getKeys = require('ethjs-util').getKeys; // eslint-disable-line
 const keccak256 = require('js-sha3').keccak_256; // eslint-disable-line
 const hasTransactionObject = require('./has-tx-object');
+const promiseToCallback = require('promise-to-callback');
 
 module.exports = Contract;
 
@@ -16,71 +17,84 @@ function Contract(opts = {}) {
   self.filters = new EthFilter(self.query);
 
   getCallableMethodsFromABI(self.abi).forEach((methodObject) => {
-    self[methodObject.name] = function contractMethod() { // eslint-disable-line
-      var queryMethod = 'call'; // eslint-disable-line
-      var providedTxObject = {}; // eslint-disable-line
-      var methodCallback; // eslint-disable-line
+    if (methodObject.type === 'function') {
+      self[methodObject.name] = createContractFunction(methodObject);
+    } else if (methodObject.type === 'event') {
+      self[methodObject.name] = createContractEvent(methodObject);
+    }
+  });
+
+  function createContractEvent(methodObject) {
+    return function contractEvent() {
+      const methodArgs = [].slice.call(arguments); // eslint-disable-line
+
+      const filterInputTypes = getKeys(methodObject.inputs, 'type', false);
+      const filterTopic = `0x${keccak256(`${methodObject.name}(${filterInputTypes.join(',')})`)}`;
+      const filterTopcis = [filterTopic];
+      const argsObject = Object.assign({}, methodArgs[0]) || {};
+
+      const defaultFilterObject = Object.assign({}, (methodArgs[0] || {}), {
+        to: self.address,
+        topics: filterTopcis,
+      });
+      const filterOpts = Object.assign({}, argsObject, {
+        decoder: (logData) => abi.decodeEvent(methodObject, logData, filterTopcis),
+        defaultFilterObject,
+      });
+
+      return new self.filters.Filter(filterOpts);
+    };
+  }
+
+  function createContractFunction(methodObject) {
+    return function contractFunction() {
+      let methodCallback; // eslint-disable-line
       const methodArgs = [].slice.call(arguments); // eslint-disable-line
       if (typeof methodArgs[methodArgs.length - 1] === 'function') {
         methodCallback = methodArgs.pop();
       }
 
-      if (methodObject.type === 'function') {
-        const prom = new Promise((resolve, reject) => {
-          function newMethodCallback(callbackError, callbackResult) {
-            if (queryMethod === 'call' && !callbackError) {
-              try {
-                const decodedMethodResult = abi.decodeMethod(methodObject, callbackResult);
+      const promise = performCall({ methodObject, methodArgs });
 
-                resolve(decodedMethodResult);
-              } catch (decodeFormattingError) {
-                const decodingError = new Error(`[ethjs-contract] while formatting incoming raw call data ${JSON.stringify(callbackResult)} ${decodeFormattingError}`);
-
-                reject(decodingError);
-              }
-            } else if (queryMethod === 'sendTransaction' && !callbackError) {
-              resolve(callbackResult);
-            } else {
-              reject(callbackError);
-            }
-          }
-
-          if (hasTransactionObject(methodArgs)) providedTxObject = methodArgs.pop();
-          const methodTxObject = Object.assign({},
-            self.defaultTxObject,
-            providedTxObject, {
-              to: self.address,
-            });
-          methodTxObject.data = abi.encodeMethod(methodObject, methodArgs);
-
-          if (methodObject.constant === false) {
-            queryMethod = 'sendTransaction';
-          }
-
-          self.query[queryMethod](methodTxObject, newMethodCallback);
-        });
-
-        if (methodCallback) {
-          prom.then(res => methodCallback(null, res)).catch(err => methodCallback(err, null));
-        }
-
-        return methodCallback ? null : prom;
-      } else if (methodObject.type === 'event') {
-        const filterInputTypes = getKeys(methodObject.inputs, 'type', false);
-        const filterTopic = `0x${keccak256(`${methodObject.name}(${filterInputTypes.join(',')})`)}`;
-        const filterTopcis = [filterTopic];
-        const argsObject = Object.assign({}, methodArgs[0]) || {};
-
-        return new self.filters.Filter(Object.assign({}, argsObject, {
-          decoder: (logData) => abi.decodeEvent(methodObject, logData, filterTopcis),
-          defaultFilterObject: Object.assign({}, (methodArgs[0] || {}), {
-            to: self.address,
-            topics: filterTopcis,
-          }),
-        }));
+      if (methodCallback) {
+        return promiseToCallback(promise)(methodCallback);
       }
+
+      return promise;
     };
-  });
+  }
+
+  async function performCall({ methodObject, methodArgs }) {
+    let queryMethod = 'call'; // eslint-disable-line
+    let providedTxObject = {}; // eslint-disable-line
+
+    if (hasTransactionObject(methodArgs)) providedTxObject = methodArgs.pop();
+    const methodTxObject = Object.assign({},
+      self.defaultTxObject,
+      providedTxObject, {
+        to: self.address,
+      });
+    methodTxObject.data = abi.encodeMethod(methodObject, methodArgs);
+
+    if (methodObject.constant === false) {
+      queryMethod = 'sendTransaction';
+    }
+
+    const queryResult = await self.query[queryMethod](methodTxObject);
+
+    if (queryMethod === 'call') {
+      // queryMethod is 'call', result is returned value
+      try {
+        const decodedMethodResult = abi.decodeMethod(methodObject, queryResult);
+        return decodedMethodResult;
+      } catch (decodeFormattingError) {
+        const decodingError = new Error(`[ethjs-contract] while formatting incoming raw call data ${JSON.stringify(queryResult)} ${decodeFormattingError}`);
+        throw decodingError;
+      }
+    }
+    // queryMethod is 'sendTransaction', result is txHash
+    return queryResult;
+  }
 }
 
 function getCallableMethodsFromABI(contractABI) {

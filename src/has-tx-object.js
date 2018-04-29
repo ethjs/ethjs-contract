@@ -1,16 +1,28 @@
-const arrayContainsArray = require('ethjs-util').arrayContainsArray;
+const txObjectProperties = ['from', 'to', 'data', 'value', 'gasPrice', 'gas'];
 
 module.exports = hasTransactionObject;
 
 function hasTransactionObject(args) {
-  const txObjectProperties = ['from', 'to', 'data', 'value', 'gasPrice', 'gas'];
-  if (typeof args === 'object' && Array.isArray(args) === true && args.length > 0) {
-    if (typeof args[args.length - 1] === 'object'
-      && (Object.keys(args[args.length - 1]).length === 0
-      || arrayContainsArray(Object.keys(args[args.length - 1]), txObjectProperties, true))) {
-      return true;
-    }
+  // bad/empty args: bad
+  if (!Array.isArray(args) || args.length === 0) {
+    return false;
   }
-
+  const lastArg = args[args.length - 1];
+  // missing or non-object: bad
+  if (!lastArg) return false;
+  if (typeof lastArg !== 'object') {
+    return false;
+  }
+  // empty object: good
+  if (Object.keys(lastArg).length === 0) {
+    return true;
+  }
+  // txParams object: good
+  const keys = Object.keys(lastArg);
+  const hasMatchingKeys = txObjectProperties.some((value) => keys.includes(value));
+  if (hasMatchingKeys) {
+    return true;
+  }
+  // no match
   return false;
 }

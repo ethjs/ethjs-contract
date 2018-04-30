@@ -80,7 +80,7 @@ filter.watch((err, result) => {
   // result null FilterResult {...}
 });
 filter.uninstall()
-.then(result) => {
+.then(result => {
   // result Boolean
 });
 ```
